@@ -16,12 +16,27 @@
 |---|---|
 | GPU / VRAM | Colab T4 (Tesla T4, 14.56 GB khả dụng) |
 | Mô hình gốc | unsloth/Qwen3-4B-Instruct-2507-unsloth-bnb-4bit |
-| Dữ liệu SFT | saillab/alpaca-vietnamese-cleaned · 1.000 mẫu · 1 epoch (120 bước, batch 1 × grad-accum 8) |
+| Dữ liệu SFT | saillab/alpaca-vietnamese-cleaned · 1.000 mẫu · 1 epoch (125 bước, batch 1 × grad-accum 8); loss 1.88 → 1.28, loss cuối 1.36 (trung bình cả lượt) |
 | Dữ liệu sở thích | sailor2/sea-ultrafeedback-onpolicy (vi) · 800 huấn luyện / 100 held-out, chia theo câu hỏi |
 | Chosen dài hơn rejected (NB2) | 65,9% (trung vị 94 token so với 86 token) |
 | DPO: β / tốc độ học (lr) / số epoch | 0.1 / 5e-6 / 1 (100 bước, loss sigmoid) |
 | Giám khảo | rm-panel: Skywork-Reward-V2-Qwen3-4B + Skywork-Reward-V2-Llama-3.2-3B; sanity accuracy 100% (cả hai 12/12) |
 | Chi phí | 0 đồng (Colab miễn phí) |
+
+**3 cặp mẫu đầu tiên của tập huấn luyện (NB2), mình đọc xong và nhận xét:**
+
+1. *"Tạo 10 yêu cầu thay đổi"* (có ví dụ Trước / Yêu cầu / Sau): chosen (2.064 ký tự) giữ đúng nhãn
+   "Yêu cầu" như ví dụ, còn rejected (1.899 ký tự) đổi thành "Thay đổi". Chosen tốt hơn thật vì bám đúng
+   định dạng đề bài, và dài hơn không nhiều.
+2. *Phân loại bài đăng tiếng Tây Ban Nha thành "hung hăng / không hung hăng"*: chosen là "Thô bạo",
+   rejected là "Bạo lực". Cả hai đều **sai định dạng**, vì đáp án hợp lệ phải là "Hung hăng". Cặp này gần
+   như là nhiễu nhãn: DPO được dạy ưu tiên một câu sai hơn một câu sai khác.
+3. *Hướng dẫn đặt lịch đánh giá giọng hát*: chosen (1.451 ký tự) **ngắn hơn** rejected (1.620 ký tự).
+   Rejected bịa thêm đường link và chương trình "AVAR" không có trong đề. Ở đây chosen tốt hơn nhờ không bịa
+   thông tin, không phải nhờ dài hơn.
+
+Kết luận: nhãn sở thích phần lớn hợp lý, nhưng có cặp nhiễu (cặp 2). Độ dài không phải lúc nào cũng quyết
+định (cặp 3), dù 65,9% cặp có chosen dài hơn.
 
 ---
 
@@ -36,6 +51,12 @@
 | Margin trên held-out | +0.0866 (chosen +0.439, rejected +0.352) |
 | Chẩn đoán tự động (`diagnosis`) | INTENDED |
 | Độ dài trung bình câu trả lời SFT → DPO (NB4) | 547 → 560 ký tự (58 câu) |
+
+> Notebook nộp kèm (`submission/Lab22_DPO_T4_run.ipynb`) bị thiếu output ở một số cell: cell vẽ loss của
+> NB1, các cell đo độ dài / lưu dữ liệu của NB2, và các cell huấn luyện / vẽ / chẩn đoán của NB3. Lý do là
+> tab Colab mất kết nối trong lúc các cell này đang chạy. Các cell vẫn chạy xong và kết quả của chúng được
+> lưu trong repo: ảnh `02-sft-loss.png`, `02b-pref-length.png`, `03-dpo-reward-curves.png`, file
+> `data/pref/*.parquet` và `adapters/dpo/dpo_metrics.json`.
 
 Loss DPO giảm từ 0.6924 (≈ log 2, đúng như NB0 dự đoán khi policy = reference) xuống 0.6743.
 

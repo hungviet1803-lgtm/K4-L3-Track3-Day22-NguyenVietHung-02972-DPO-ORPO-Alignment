@@ -7,9 +7,12 @@ patch them; these helpers import lazily for the same reason.
 from __future__ import annotations
 
 import gc
+import re
 from pathlib import Path
 
 from . import config as C
+
+_CONTROL_TAGS = re.compile(r"</?(?:tool_call|tool_response|think)>")
 
 
 def load_model(name: str | Path, max_len: int = C.MAX_LEN, load_in_4bit: bool = True):
@@ -83,7 +86,9 @@ def generate(
                     pad_token_id=tokenizer.pad_token_id,
                 )
             new_tokens = out[:, enc["input_ids"].shape[1] :]
-            outputs.extend(t.strip() for t in tokenizer.batch_decode(new_tokens, skip_special_tokens=True))
+            decoded = tokenizer.batch_decode(new_tokens, skip_special_tokens=True)
+            # Qwen3's <tool_call>/<think> markers are added tokens, not "special", so they survive decoding.
+            outputs.extend(_CONTROL_TAGS.sub("", t).strip() for t in decoded)
     finally:
         tokenizer.padding_side = old_side
     return outputs
